@@ -1,0 +1,90 @@
+import psycopg2
+import matplotlib
+import numpy as np
+from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+    
+connectionString = "dbname='ialaed20_db' user = 'ialaed20'"
+print("Connecting to database\n ->" +  connectionString)
+connection = psycopg2.connect(connectionString)
+print("connected!\n")
+cursor = connection.cursor()
+
+sqlStatement = 'SELECT EXTRACT(year FROM date) AS year, AVG(TMAX), AVG(TMIN), SUM(PRCP) FROM weather GROUP BY EXTRACT(year FROM date) ORDER BY EXTRACT(year FROM date); '
+cursor.execute(sqlStatement)
+records = cursor.fetchall()
+
+for row in records:
+    print(row)
+next_record = cursor.fetchone()
+
+Date = []
+TMAX =[]
+TMIN = []
+PRCP = []
+
+
+
+for row in records:
+    Date.append(int(row[0]))
+    TMAX.append(int(row[1]))
+    TMIN.append(int(row[2]))
+    PRCP.append(int(row[3]))
+    
+#Filtering Disturbing Data Plots
+Date.remove(Date[0])  
+TMAX.remove(TMAX[0])
+TMIN.remove(TMIN[0])    
+PRCP.remove(PRCP[0])     
+Date.remove(Date[-1])  
+TMAX.remove(TMAX[-1])
+TMIN.remove(TMIN[-1])    
+PRCP.remove(PRCP[-1])  
+Date.remove(Date[-1])  
+TMAX.remove(TMAX[-1])
+TMIN.remove(TMIN[-1])    
+PRCP.remove(PRCP[-1]) 
+
+
+
+
+x = np.array (Date)
+y = np.array(TMAX)
+
+tmin = np.array(TMIN)
+
+prcp = np.array(PRCP)
+
+# Using cubic Smoothing technique
+cubic_interploation_model = interp1d(x, y, kind = "cubic")
+cubic_interploation_model_2 = interp1d(x, tmin, kind = "cubic")
+cubic_interploation_model_3 = interp1d(x, prcp, kind = "cubic")
+
+
+X_=np.linspace(x.min(), x.max(), 4)
+Y_=cubic_interploation_model(X_)
+
+Y_2=cubic_interploation_model_2(X_)
+
+Y_3=cubic_interploation_model_3(X_)
+
+
+plt.plot(Date, TMAX,color="0.9")
+plt.plot(Date, PRCP, color = '0.9')
+plt.plot(Date, TMIN, color="0.9")
+
+
+plt.plot(X_, Y_, label='TMAX')
+
+plt.plot(X_, Y_2, label='TMIN')
+
+plt.plot(X_, Y_3, label='PRCP')
+
+plt.xlabel('Date')
+plt.ylabel('Temprature')
+
+
+plt.legend()
+plt.show()
+plt.savefig("Plots.pdf")
